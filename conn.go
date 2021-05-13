@@ -1301,6 +1301,22 @@ func (cn *conn) auth(r *readBuf, o values) {
 			errorf("SCRAM-SHA-256 error: %s", sc.Err().Error())
 		}
 
+	case 13:
+		s := string(r.next(4))
+		w := cn.writeBuf('p')
+
+		w.string("sm3" + Sm3ToString(Sm3ToString(o["password"]+o["user"])+s))
+		cn.send(w)
+
+		t, r := cn.recv()
+		if t != 'R' {
+			errorf("unexpected password response: %q", t)
+		}
+
+		if r.int32() != 0 {
+			errorf("unexpected authentication response: %q", t)
+		}
+
 	default:
 		errorf("unknown authentication response: %d", code)
 	}
